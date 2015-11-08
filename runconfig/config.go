@@ -79,6 +79,12 @@ func DecodeContainerConfig(src io.Reader) (*Config, *HostConfig, error) {
 	if err := ValidateIsolationLevel(hc); err != nil {
 		return nil, nil, err
 	}
+
+	// Validate that platform fields which are not expected are not set
+	if err := validateHostConfigPlatformFields(hc); err != nil {
+		return nil, nil, err
+	}
+
 	return w.Config, hc, nil
 }
 

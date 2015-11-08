@@ -171,3 +171,40 @@ func ValidateIsolationLevel(hc *HostConfig) error {
 	}
 	return nil
 }
+
+// Valid indicates whether the ipc stack is valid.
+func (n IpcMode) Valid() bool {
+	parts := strings.Split(string(n), ":")
+	switch mode := parts[0]; mode {
+	case "", "host":
+	case "container":
+		if len(parts) != 2 || parts[1] == "" {
+			return false
+		}
+	default:
+		return false
+	}
+	return true
+}
+
+// Valid indicates whether the pid stack is valid.
+func (n PidMode) Valid() bool {
+	parts := strings.Split(string(n), ":")
+	switch mode := parts[0]; mode {
+	case "", "host":
+	default:
+		return false
+	}
+	return true
+}
+
+// Valid indicates whether the UTS namespace is valid.
+func (n UTSMode) Valid() bool {
+	parts := strings.Split(string(n), ":")
+	switch mode := parts[0]; mode {
+	case "", "host":
+	default:
+		return false
+	}
+	return true
+}

@@ -1,0 +1,96 @@
+{
+    "AttachStdin": true,
+    "AttachStdout": true,
+    "AttachStderr": true,
+    "Cmd": [
+        "tasklist"
+    ],
+    "Domainname": "",
+    "Entrypoint": "cmd",
+    "Env": [],
+    "ExposedPorts": {
+        "22/tcp": {}
+    },
+    "HostConfig": {
+        "Binds": [
+            "c:/windows:d:/tmp"
+        ],
+        "BlkioWeight": 0,
+        "CapAdd": null,
+        "CapDrop": null,
+        "CgroupParent": "",
+        "ConsoleSize": [
+            30,
+            120
+        ],
+        "ContainerIDFile": "",
+        "CpuShares": 512,
+        "CpuPeriod": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "CpuQuota": 0,
+        "Devices": [],
+        "Dns": null,
+        "DnsOptions": null,
+        "DnsSearch": null,
+        "ExtraHosts": null,
+        "GroupAdd": null,
+        "KernelMemory": 0,
+        "IpcMode": "",
+        "Isolation": "default",
+        "Links": null,
+        "LogConfig": {
+            "Type": "",
+            "Config": {}
+        },
+        "LxcConf": [],
+        "Memory": 0,
+        "MemoryReservation": 0,
+        "MemorySwap": 0,
+        "NetworkMode": "default",
+        "OomKillDisable": false,
+        "MemorySwappiness": -1,
+        "PidMode": "",
+        "PortBindings": {
+            "22/tcp": [
+                {
+                    "HostPort": "11022"
+                }
+            ]
+        },
+        "Privileged": false,
+        "PublishAllPorts": false,
+        "ReadonlyRootfs": false,
+        "RestartPolicy": {
+            "Name": "no",
+            "MaximumRetryCount": 0
+        },
+        "SecurityOpt": null,
+        "Ulimits": null,
+        "UTSMode": "",
+        "VolumeDriver": "",
+        "VolumesFrom": [
+            "parent",
+            "other:ro"
+        ]
+    },
+    "Hostname": "66a86ccf686b",
+    "Image": "windowsservercore",
+    "Labels": {
+        "com.example.vendor": "Acme",
+        "com.example.license": "GPL",
+        "com.example.version": "1.0"
+    },
+    "MacAddress": "12:34:56:78:9a:bc",
+    "NetworkDisabled": false,
+    "OnBuild": null,
+    "OpenStdin": true,
+    "StdinOnce": true,
+    "StopSignal": "15",
+    "User": "",
+    "Tty": true,
+    "Volumes": {
+        "c:/windows": {}
+    },
+    "WorkingDir": ""
+}

@@ -487,44 +487,45 @@ func TestParseDevice(t *testing.T) {
 
 }
 
-func TestParseModes(t *testing.T) {
-	// ipc ko
-	if _, _, _, err := parseRun([]string{"--ipc=container:", "img", "cmd"}); err == nil || err.Error() != "--ipc: invalid IPC mode" {
-		t.Fatalf("Expected an error with message '--ipc: invalid IPC mode', got %v", err)
-	}
-	// ipc ok
-	_, hostconfig, _, err := parseRun([]string{"--ipc=host", "img", "cmd"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !hostconfig.IpcMode.Valid() {
-		t.Fatalf("Expected a valid IpcMode, got %v", hostconfig.IpcMode)
-	}
-	// pid ko
-	if _, _, _, err := parseRun([]string{"--pid=container:", "img", "cmd"}); err == nil || err.Error() != "--pid: invalid PID mode" {
-		t.Fatalf("Expected an error with message '--pid: invalid PID mode', got %v", err)
-	}
-	// pid ok
-	_, hostconfig, _, err = parseRun([]string{"--pid=host", "img", "cmd"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !hostconfig.PidMode.Valid() {
-		t.Fatalf("Expected a valid PidMode, got %v", hostconfig.PidMode)
-	}
-	// uts ko
-	if _, _, _, err := parseRun([]string{"--uts=container:", "img", "cmd"}); err == nil || err.Error() != "--uts: invalid UTS mode" {
-		t.Fatalf("Expected an error with message '--uts: invalid UTS mode', got %v", err)
-	}
-	// uts ok
-	_, hostconfig, _, err = parseRun([]string{"--uts=host", "img", "cmd"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !hostconfig.UTSMode.Valid() {
-		t.Fatalf("Expected a valid UTSMode, got %v", hostconfig.UTSMode)
-	}
-}
+//// Validation is done server side. Move to integration tests.
+//func TestParseModes(t *testing.T) {
+//	// ipc ko
+//	if _, _, _, err := parseRun([]string{"--ipc=container:", "img", "cmd"}); err == nil || err.Error() != "--ipc: invalid IPC mode" {
+//		t.Fatalf("Expected an error with message '--ipc: invalid IPC mode', got %v", err)
+//	}
+//	// ipc ok
+//	_, hostconfig, _, err := parseRun([]string{"--ipc=host", "img", "cmd"})
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//	if !hostconfig.IpcMode.Valid() {
+//		t.Fatalf("Expected a valid IpcMode, got %v", hostconfig.IpcMode)
+//	}
+//	// pid ko
+//	if _, _, _, err := parseRun([]string{"--pid=container:", "img", "cmd"}); err == nil || err.Error() != "--pid: invalid PID mode" {
+//		t.Fatalf("Expected an error with message '--pid: invalid PID mode', got %v", err)
+//	}
+//	// pid ok
+//	_, hostconfig, _, err = parseRun([]string{"--pid=host", "img", "cmd"})
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//	if !hostconfig.PidMode.Valid() {
+//		t.Fatalf("Expected a valid PidMode, got %v", hostconfig.PidMode)
+//	}
+//	// uts ko
+//	if _, _, _, err := parseRun([]string{"--uts=container:", "img", "cmd"}); err == nil || err.Error() != "--uts: invalid UTS mode" {
+//		t.Fatalf("Expected an error with message '--uts: invalid UTS mode', got %v", err)
+//	}
+//	// uts ok
+//	_, hostconfig, _, err = parseRun([]string{"--uts=host", "img", "cmd"})
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//	if !hostconfig.UTSMode.Valid() {
+//		t.Fatalf("Expected a valid UTSMode, got %v", hostconfig.UTSMode)
+//	}
+//}
 
 func TestParseRestartPolicy(t *testing.T) {
 	invalids := map[string]string{

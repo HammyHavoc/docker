@@ -1,144 +1,17 @@
-// +build !windows
-
 package runconfig
 
 import (
-	"bytes"
-	"fmt"
-	"io/ioutil"
+	//	"bytes"
+	//"fmt"
+	//	"io/ioutil"
+	"runtime"
+	"strings"
 	"testing"
+
+	"github.com/docker/docker/pkg/nat"
+	"github.com/docker/docker/pkg/stringutils"
+	"github.com/docker/docker/pkg/ulimit"
 )
-
-// TODO Windows: This will need addressing for a Windows daemon.
-func TestNetworkModeTest(t *testing.T) {
-	networkModes := map[NetworkMode][]bool{
-		// private, bridge, host, container, none, default
-		"":                         {true, false, false, false, false, false},
-		"something:weird":          {true, false, false, false, false, false},
-		"bridge":                   {true, true, false, false, false, false},
-		DefaultDaemonNetworkMode(): {true, true, false, false, false, false},
-		"host":           {false, false, true, false, false, false},
-		"container:name": {false, false, false, true, false, false},
-		"none":           {true, false, false, false, true, false},
-		"default":        {true, false, false, false, false, true},
-	}
-	networkModeNames := map[NetworkMode]string{
-		"":                         "",
-		"something:weird":          "something:weird",
-		"bridge":                   "bridge",
-		DefaultDaemonNetworkMode(): "bridge",
-		"host":           "host",
-		"container:name": "container",
-		"none":           "none",
-		"default":        "default",
-	}
-	for networkMode, state := range networkModes {
-		if networkMode.IsPrivate() != state[0] {
-			t.Fatalf("NetworkMode.IsPrivate for %v should have been %v but was %v", networkMode, state[0], networkMode.IsPrivate())
-		}
-		if networkMode.IsBridge() != state[1] {
-			t.Fatalf("NetworkMode.IsBridge for %v should have been %v but was %v", networkMode, state[1], networkMode.IsBridge())
-		}
-		if networkMode.IsHost() != state[2] {
-			t.Fatalf("NetworkMode.IsHost for %v should have been %v but was %v", networkMode, state[2], networkMode.IsHost())
-		}
-		if networkMode.IsContainer() != state[3] {
-			t.Fatalf("NetworkMode.IsContainer for %v should have been %v but was %v", networkMode, state[3], networkMode.IsContainer())
-		}
-		if networkMode.IsNone() != state[4] {
-			t.Fatalf("NetworkMode.IsNone for %v should have been %v but was %v", networkMode, state[4], networkMode.IsNone())
-		}
-		if networkMode.IsDefault() != state[5] {
-			t.Fatalf("NetworkMode.IsDefault for %v should have been %v but was %v", networkMode, state[5], networkMode.IsDefault())
-		}
-		if networkMode.NetworkName() != networkModeNames[networkMode] {
-			t.Fatalf("Expected name %v, got %v", networkModeNames[networkMode], networkMode.NetworkName())
-		}
-	}
-}
-
-func TestIpcModeTest(t *testing.T) {
-	ipcModes := map[IpcMode][]bool{
-		// private, host, container, valid
-		"":                         {true, false, false, true},
-		"something:weird":          {true, false, false, false},
-		":weird":                   {true, false, false, true},
-		"host":                     {false, true, false, true},
-		"container:name":           {false, false, true, true},
-		"container:name:something": {false, false, true, false},
-		"container:":               {false, false, true, false},
-	}
-	for ipcMode, state := range ipcModes {
-		if ipcMode.IsPrivate() != state[0] {
-			t.Fatalf("IpcMode.IsPrivate for %v should have been %v but was %v", ipcMode, state[0], ipcMode.IsPrivate())
-		}
-		if ipcMode.IsHost() != state[1] {
-			t.Fatalf("IpcMode.IsHost for %v should have been %v but was %v", ipcMode, state[1], ipcMode.IsHost())
-		}
-		if ipcMode.IsContainer() != state[2] {
-			t.Fatalf("IpcMode.IsContainer for %v should have been %v but was %v", ipcMode, state[2], ipcMode.IsContainer())
-		}
-		if ipcMode.Valid() != state[3] {
-			t.Fatalf("IpcMode.Valid for %v should have been %v but was %v", ipcMode, state[3], ipcMode.Valid())
-		}
-	}
-	containerIpcModes := map[IpcMode]string{
-		"":                      "",
-		"something":             "",
-		"something:weird":       "weird",
-		"container":             "",
-		"container:":            "",
-		"container:name":        "name",
-		"container:name1:name2": "name1:name2",
-	}
-	for ipcMode, container := range containerIpcModes {
-		if ipcMode.Container() != container {
-			t.Fatalf("Expected %v for %v but was %v", container, ipcMode, ipcMode.Container())
-		}
-	}
-}
-
-func TestUTSModeTest(t *testing.T) {
-	utsModes := map[UTSMode][]bool{
-		// private, host, valid
-		"":                {true, false, true},
-		"something:weird": {true, false, false},
-		"host":            {false, true, true},
-		"host:name":       {true, false, true},
-	}
-	for utsMode, state := range utsModes {
-		if utsMode.IsPrivate() != state[0] {
-			t.Fatalf("UtsMode.IsPrivate for %v should have been %v but was %v", utsMode, state[0], utsMode.IsPrivate())
-		}
-		if utsMode.IsHost() != state[1] {
-			t.Fatalf("UtsMode.IsHost for %v should have been %v but was %v", utsMode, state[1], utsMode.IsHost())
-		}
-		if utsMode.Valid() != state[2] {
-			t.Fatalf("UtsMode.Valid for %v should have been %v but was %v", utsMode, state[2], utsMode.Valid())
-		}
-	}
-}
-
-func TestPidModeTest(t *testing.T) {
-	pidModes := map[PidMode][]bool{
-		// private, host, valid
-		"":                {true, false, true},
-		"something:weird": {true, false, false},
-		"host":            {false, true, true},
-		"host:name":       {true, false, true},
-	}
-	for pidMode, state := range pidModes {
-		if pidMode.IsPrivate() != state[0] {
-			t.Fatalf("PidMode.IsPrivate for %v should have been %v but was %v", pidMode, state[0], pidMode.IsPrivate())
-		}
-		if pidMode.IsHost() != state[1] {
-			t.Fatalf("PidMode.IsHost for %v should have been %v but was %v", pidMode, state[1], pidMode.IsHost())
-		}
-		if pidMode.Valid() != state[2] {
-			t.Fatalf("PidMode.Valid for %v should have been %v but was %v", pidMode, state[2], pidMode.Valid())
-		}
-	}
-}
 
 func TestRestartPolicy(t *testing.T) {
 	restartPolicies := map[RestartPolicy][]bool{
@@ -162,60 +35,72 @@ func TestRestartPolicy(t *testing.T) {
 	}
 }
 
-func TestMergeConfigs(t *testing.T) {
-	expectedHostname := "hostname"
-	expectedContainerIDFile := "containerIdFile"
-	config := &Config{
-		Hostname: expectedHostname,
-	}
-	hostConfig := &HostConfig{
-		ContainerIDFile: expectedContainerIDFile,
-	}
-	containerConfigWrapper := MergeConfigs(config, hostConfig)
-	if containerConfigWrapper.Config.Hostname != expectedHostname {
-		t.Fatalf("containerConfigWrapper config hostname expected %v got %v", expectedHostname, containerConfigWrapper.Config.Hostname)
-	}
-	if containerConfigWrapper.InnerHostConfig.ContainerIDFile != expectedContainerIDFile {
-		t.Fatalf("containerConfigWrapper hostconfig containerIdfile expected %v got %v", expectedContainerIDFile, containerConfigWrapper.InnerHostConfig.ContainerIDFile)
-	}
-	if containerConfigWrapper.Cpuset != "" {
-		t.Fatalf("Expected empty Cpuset, got %v", containerConfigWrapper.Cpuset)
-	}
+func TestValidateNonPlatformFields(t *testing.T) {
+
+	// Common fields
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{Binds: []string{"/host:/container:mode"}}, "Binds", false)
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{ContainerIDFile: "/path"}, "ContainerIDFile", false)
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{CPUShares: 8765}, "CPUShares", false)
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{LogConfig: LogConfig{"something", nil}}, "LogConfig", false)
+	pm := make(map[nat.Port][]nat.PortBinding)
+	pm["22/tcp"] = nil
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{PortBindings: pm}, "LogConfig", false)
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{RestartPolicy: RestartPolicy{"restart policy", 5}}, "RestartPolicy", false)
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{VolumeDriver: "driver"}, "VolumeDriver", false)
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{VolumesFrom: []string{"volfrom"}}, "VolumesFrom", false)
+
+	// Unix fields
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{BlkioWeight: 1234}, "BlkioWeight", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{CapAdd: stringutils.NewStrSlice("NET_ADMIN")}, "CapAdd", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{CapDrop: stringutils.NewStrSlice("NET_ADMIN")}, "CapDrop", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{CgroupParent: "cgp"}, "CgroupParent", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{CPUPeriod: 2345}, "CPUPeriod", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{CPUQuota: 3456}, "CPUQuota", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{CpusetCpus: "5,6"}, "CpusetCpus", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{CpusetMems: "700,800"}, "CpusetMems", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{Devices: []DeviceMapping{{"/host", "/container", "rw"}}}, "CpusetMems", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{DNS: []string{"some.suffix.com"}}, "DNS", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{DNSOptions: []string{"an option"}}, "DNSOptions", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{DNSSearch: []string{"search.com"}}, "DNSSearch", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{ExtraHosts: []string{"name1", "name2"}}, "ExtraHosts", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{GroupAdd: []string{"group1", "group2"}}, "GroupAdd", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{IpcMode: "ipcmode"}, "IpcMode", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{IpcMode: "host"}, "IpcMode", (runtime.GOOS != "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{KernelMemory: 4567}, "KernelMemory", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{Links: []string{"link1", "link2"}}, "Links", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{Memory: 5678}, "Memory", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{MemoryReservation: 7890}, "MemoryReservation", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{MemorySwap: 8901}, "MemorySwap", (runtime.GOOS == "windows"))
+	var ms int64 = 9012
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{MemorySwappiness: &ms}, "MemorySwappiness", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{OomKillDisable: true}, "OomKillDisable", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{PidMode: "pidmode"}, "PidMode", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{PidMode: "host"}, "PidMode", (runtime.GOOS != "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{Privileged: true}, "Priviliged", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{PublishAllPorts: true}, "PublishAllPorts", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{ReadonlyRootfs: true}, "ReadonlyRootfs", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{SecurityOpt: []string{"sopt1", "sopt2"}}, "SecurityOpt", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{Ulimits: []*ulimit.Ulimit{&ulimit.Ulimit{"name", 123, 456}}}, "Ulimit", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{UTSMode: "utsmode"}, "UTSMode", (runtime.GOOS == "windows"))
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{UTSMode: "host"}, "UTSMode", (runtime.GOOS != "windows"))
+
+	// Windows Fields
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{ConsoleSize: [2]int{80, 25}}, "ConsoleSize", false)
+	testValidateNonPlatformFieldsHelper(t, &HostConfig{Isolation: "hyperv"}, "Isolation", (runtime.GOOS != "windows"))
 }
 
-func TestDecodeHostConfig(t *testing.T) {
-	fixtures := []struct {
-		file string
-	}{
-		{"fixtures/unix/container_hostconfig_1_14.json"},
-		{"fixtures/unix/container_hostconfig_1_19.json"},
-	}
-
-	for _, f := range fixtures {
-		b, err := ioutil.ReadFile(f.file)
-		if err != nil {
-			t.Fatal(err)
+func testValidateNonPlatformFieldsHelper(t *testing.T, hc *HostConfig, field string, shouldFail bool) {
+	if shouldFail {
+		if err := validateHostConfigPlatformFields(hc); err == nil {
+			t.Fatalf("Expected %q to fail", field)
+		} else {
+			if !strings.Contains(err.Error(), "'"+field+"'") && !strings.Contains(err.Error(), "Not supported on "+runtime.GOOS) {
+				t.Fatalf("Expect %q to fail on %s. Got %v", field, runtime.GOOS, err)
+			}
 		}
-
-		c, err := DecodeHostConfig(bytes.NewReader(b))
-		if err != nil {
-			t.Fatal(fmt.Errorf("Error parsing %s: %v", f, err))
-		}
-
-		if c.Privileged != false {
-			t.Fatalf("Expected privileged false, found %v\n", c.Privileged)
-		}
-
-		if l := len(c.Binds); l != 1 {
-			t.Fatalf("Expected 1 bind, found %d\n", l)
-		}
-
-		if c.CapAdd.Len() != 1 && c.CapAdd.Slice()[0] != "NET_ADMIN" {
-			t.Fatalf("Expected CapAdd NET_ADMIN, got %v", c.CapAdd)
-		}
-
-		if c.CapDrop.Len() != 1 && c.CapDrop.Slice()[0] != "NET_ADMIN" {
-			t.Fatalf("Expected CapDrop MKNOD, got %v", c.CapDrop)
+	} else {
+		if err := validateHostConfigPlatformFields(hc); err != nil {
+			t.Fatalf("Expect %q to succeed on %s. %s", field, runtime.GOOS, err.Error())
 		}
 	}
 }

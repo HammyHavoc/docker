@@ -32,9 +32,9 @@ func TestDecodeContainerConfig(t *testing.T) {
 			{"fixtures/unix/container_config_1_19.json", stringutils.NewStrSlice("bash")},
 		}
 	} else {
-		image = "windows"
+		image = "windowsservercore"
 		fixtures = []f{
-			{"fixtures/windows/container_config_1_19.json", stringutils.NewStrSlice("cmd")},
+			{"fixtures/windows/container_config_1_22.json", stringutils.NewStrSlice("cmd")},
 		}
 	}
 
@@ -57,8 +57,12 @@ func TestDecodeContainerConfig(t *testing.T) {
 			t.Fatalf("Expected %v, found %v\n", f.entrypoint, c.Entrypoint)
 		}
 
-		if h != nil && h.Memory != 1000 {
-			t.Fatalf("Expected memory to be 1000, found %d\n", h.Memory)
+		m := int64(1000)
+		if runtime.GOOS == "windows" {
+			m = 0
+		}
+		if h != nil && h.Memory != m {
+			t.Fatalf("Expected memory to be %d, found %d\n", m, h.Memory)
 		}
 	}
 }

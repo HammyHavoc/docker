@@ -283,19 +283,8 @@ func Parse(cmd *flag.FlagSet, args []string) (*Config, *HostConfig, *flag.FlagSe
 	}
 
 	ipcMode := IpcMode(*flIpcMode)
-	if !ipcMode.Valid() {
-		return nil, nil, cmd, fmt.Errorf("--ipc: invalid IPC mode")
-	}
-
 	pidMode := PidMode(*flPidMode)
-	if !pidMode.Valid() {
-		return nil, nil, cmd, fmt.Errorf("--pid: invalid PID mode")
-	}
-
 	utsMode := UTSMode(*flUTSMode)
-	if !utsMode.Valid() {
-		return nil, nil, cmd, fmt.Errorf("--uts: invalid UTS mode")
-	}
 
 	restartPolicy, err := ParseRestartPolicy(*flRestartPolicy)
 	if err != nil {

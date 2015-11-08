@@ -79,3 +79,27 @@ func ValidateIsolationLevel(hc *HostConfig) error {
 	}
 	return nil
 }
+
+// Valid indicates whether the ipc stack is valid.
+func (n IpcMode) Valid() bool {
+	if string(n) == "" {
+		return true
+	}
+	return false
+}
+
+// Valid indicates whether the pid stack is valid.
+func (n PidMode) Valid() bool {
+	if string(n) == "" {
+		return true
+	}
+	return false
+}
+
+// Valid indicates whether the UTS namespace is valid.
+func (n UTSMode) Valid() bool {
+	if string(n) == "" {
+		return true
+	}
+	return false
+}
