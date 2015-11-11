@@ -125,9 +125,12 @@ func (cli *DockerCli) CmdRun(args ...string) error {
 		config.StdinOnce = false
 	}
 
-	// Disable flSigProxy when in TTY mode
+	// Disable flSigProxy when in TTY mode. Windows does not have a
+	// a concept of a TTY, it's just attached or not. Honour the proxy setting.
 	sigProxy := *flSigProxy
-	if config.Tty {
+	fmt.Println("JJH before is ", sigProxy)
+	if runtime.GOOS != "windows" && config.Tty {
+		fmt.Println("JJH setting to false in run")
 		sigProxy = false
 	}
 
@@ -144,6 +147,7 @@ func (cli *DockerCli) CmdRun(args ...string) error {
 		return runStartContainerErr(err)
 	}
 	if sigProxy {
+		fmt.Println("JJH run forwardAllSignals")
 		sigc := cli.forwardAllSignals(createResponse.ID)
 		defer signal.StopCatch(sigc)
 	}

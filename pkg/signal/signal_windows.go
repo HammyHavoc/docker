@@ -24,4 +24,18 @@ const (
 var SignalMap = map[string]syscall.Signal{
 	"KILL": syscall.SIGKILL,
 	"TERM": syscall.SIGTERM,
+
+	// INT is for Control-C handling on the client
+	"INT": syscall.SIGINT,
+
+	"HUP":  syscall.SIGHUP,
+	"QUIT": syscall.SIGQUIT,
+	"ILL":  syscall.SIGILL,
+	"TRAP": syscall.SIGTRAP,
+	"ABRT": syscall.SIGABRT,
+	"BUS":  syscall.SIGBUS,
+	"FPE":  syscall.SIGFPE,
+	"SEGV": syscall.SIGSEGV,
+	"PIPE": syscall.SIGPIPE,
+	"ALRM": syscall.SIGALRM,
 }

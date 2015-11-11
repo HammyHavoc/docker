@@ -15,6 +15,7 @@ import (
 func CatchAll(sigc chan os.Signal) {
 	handledSigs := []os.Signal{}
 	for _, s := range SignalMap {
+		fmt.Println("JJH handledSig", s)
 		handledSigs = append(handledSigs, s)
 	}
 	signal.Notify(sigc, handledSigs...)
@@ -22,6 +23,7 @@ func CatchAll(sigc chan os.Signal) {
 
 // StopCatch stops catching the signals and closes the specified channel.
 func StopCatch(sigc chan os.Signal) {
+	fmt.Println("JJH Calling StopCatch()")
 	signal.Stop(sigc)
 	close(sigc)
 }

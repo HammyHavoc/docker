@@ -6,6 +6,7 @@ package term
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/signal"
@@ -121,12 +122,13 @@ func SetRawTerminal(fd uintptr) (*State, error) {
 }
 
 func handleInterrupt(fd uintptr, state *State) {
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, os.Interrupt)
+	fmt.Println("JJH handleInterrupt commented out in pkg.term.germ.go")
+	//	sigchan := make(chan os.Signal, 1)
+	//	signal.Notify(sigchan, os.Interrupt)
 
-	go func() {
-		_ = <-sigchan
-		RestoreTerminal(fd, state)
-		os.Exit(0)
-	}()
+	//	go func() {
+	//		_ = <-sigchan
+	//		RestoreTerminal(fd, state)
+	//		os.Exit(0)
+	//	}()
 }

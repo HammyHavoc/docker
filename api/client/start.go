@@ -17,9 +17,13 @@ import (
 
 func (cli *DockerCli) forwardAllSignals(cid string) chan os.Signal {
 	sigc := make(chan os.Signal, 128)
+	fmt.Println("JJH in forwardAllSignals")
 	signal.CatchAll(sigc)
+	fmt.Println("JJH asfter calling CatchAll", sigc)
 	go func() {
+		fmt.Println("JJH in go func()")
 		for s := range sigc {
+			fmt.Println("JJH s=", s)
 			if s == signal.SIGCHLD {
 				continue
 			}
@@ -34,6 +38,7 @@ func (cli *DockerCli) forwardAllSignals(cid string) chan os.Signal {
 				fmt.Fprintf(cli.err, "Unsupported signal: %v. Discarding.\n", s)
 				continue
 			}
+			fmt.Println("JJH Calling post", s)
 			if _, _, err := readBody(cli.call("POST", fmt.Sprintf("/containers/%s/kill?signal=%s", cid, sig), nil, nil)); err != nil {
 				logrus.Debugf("Error sending signal: %s", err)
 			}

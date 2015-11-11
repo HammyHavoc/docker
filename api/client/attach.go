@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"runtime"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types"
@@ -67,7 +68,10 @@ func (cli *DockerCli) CmdAttach(args ...string) error {
 	v.Set("stdout", "1")
 	v.Set("stderr", "1")
 
-	if *proxy && !c.Config.Tty {
+	// Windows does not have a concept of a TTY, it's just attached or not.
+	// Honour the proxy setting.
+	if *proxy && ((runtime.GOOS == "windows") || (runtime.GOOS != "windows" && !c.Config.Tty)) {
+		fmt.Println("JJH forwarding in attach")
 		sigc := cli.forwardAllSignals(cmd.Arg(0))
 		defer signal.StopCatch(sigc)
 	}

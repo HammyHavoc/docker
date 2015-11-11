@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/signal"
+	// JJH	"os/signal"
 	"syscall"
 
 	"github.com/Azure/go-ansiterm/winterm"
@@ -252,12 +252,13 @@ func MakeRaw(fd uintptr) (*State, error) {
 }
 
 func restoreAtInterrupt(fd uintptr, state *State) {
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, os.Interrupt)
+	fmt.Println("JJH restoreAtInterrupt commented out")
+	//	sigchan := make(chan os.Signal, 1)
+	//	signal.Notify(sigchan, os.Interrupt)
 
-	go func() {
-		_ = <-sigchan
-		RestoreTerminal(fd, state)
-		os.Exit(0)
-	}()
+	//	go func() {
+	//		_ = <-sigchan
+	//		RestoreTerminal(fd, state)
+	//		os.Exit(0)
+	//	}()
 }
