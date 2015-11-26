@@ -15,6 +15,7 @@ import (
 )
 
 func main() {
+	// Arbitrary change otherwise GH thinks this is a docs PR and doesn't kick off full CI
 	if reexec.Init() {
 		return
 	}

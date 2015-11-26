@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # see test-integration-cli for example usage of this script
+echo JJH Local Edits
+date
 
 export PATH="$ABS_DEST/../binary:$ABS_DEST/../dynbinary:$ABS_DEST/../gccgo:$ABS_DEST/../dyngccgo:$PATH"
 
@@ -31,9 +33,12 @@ if [ "$DOCKER_REMAP_ROOT" ]; then
 	extra_params="--userns-remap $DOCKER_REMAP_ROOT"
 fi
 
+echo DOCKER_TEST_HOST=$DOCKER_TEST_HOST
 if [ -z "$DOCKER_TEST_HOST" ]; then
+echo JJH 1
 	# Start apparmor if it is enabled
 	if [ -e "/sys/module/apparmor/parameters/enabled" ] && [ "$(cat /sys/module/apparmor/parameters/enabled)" == "Y" ]; then
+	echo JJH 2
 		# reset container variable so apparmor profile is applied to process
 		# see https://github.com/docker/libcontainer/blob/master/apparmor/apparmor.go#L16
 		export container=""
@@ -44,6 +49,7 @@ if [ -z "$DOCKER_TEST_HOST" ]; then
 	fi
 
 	export DOCKER_HOST="unix://$(cd "$DEST" && pwd)/docker.sock" # "pwd" tricks to make sure $DEST is an absolute path, not a relative one
+	echo JJH 3
 	( set -x; exec \
 		docker daemon --debug \
 		--host "$DOCKER_HOST" \
@@ -57,13 +63,36 @@ if [ -z "$DOCKER_TEST_HOST" ]; then
 	# make sure that if the script exits unexpectedly, we stop this daemon we just started
 	trap 'bundle .integration-daemon-stop' EXIT
 else
+	echo JJH 4
 	export DOCKER_HOST="$DOCKER_TEST_HOST"
+	echo JJH DOCKER_HOST=$DOCKER_HOST
+	DH=${DOCKER_HOST/2375/2357}
 fi
 
 # give it a little time to come up so it's "ready"
-tries=30
-while ! docker version &> /dev/null; do
+echo DH=$DH
+! /c/bin/docker -H="$DH" ps -a
+PSAQ=$(/c/bin/docker -H="$DH" ps -a -q)
+echo Inspecting...  
+! /c/bin/docker -H="$DH" inspect $PSAQ
+echo Images...
+! /c/bin/docker -H="$DH" images
+
+echo Going into loop...
+tries=30 
+while ! docker version; do # &> /dev/null; do
+
+	echo DH=$DH	
+	! /c/bin/docker -H="$DH" ps -a
+	echo Inspecting...
+	! /c/bin/docker -H="$DH" inspect $PSAQ
+	echo Images...
+	! /c/bin/docker -H="$DH" images 
+	echo Log...
+	! /c/bin/docker -H="$DH" logs $PSAQ
+
 	(( tries-- ))
+	echo tries=$tries
 	if [ $tries -le 0 ]; then
 		if [ -z "$DOCKER_HOST" ]; then
 			echo >&2 "error: daemon failed to start"
@@ -74,5 +103,20 @@ while ! docker version &> /dev/null; do
 		fi
 		false
 	fi
-	sleep 2
+	# cat $DEST/docker.log
+	! docker version # >&2
+	! docker -H="$DH" ps -a  # Find out what containers are running
+	echo Before sleep tries=$tries
+	sleep 2 
+	echo After sleep tries=$tries
 done
+echo JJH out of loop
+date
+echo JJH if I got here, life is good
+echo Log...
+
+! /c/bin/docker -H="$DH" ps -a
+echo PSAQ=$PSAQ
+! /c/bin/docker -H="$DH" logs $PSAQ
+docker ps -a  #will cause a failure.
+false #should also cause a failure
