@@ -4,6 +4,7 @@ package windows
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/daemon/execdriver"
@@ -78,12 +79,16 @@ func (d *Driver) Exec(c *execdriver.Command, processConfig *execdriver.ProcessCo
 	if exitCode, errno, err = hcsshim.WaitForProcessInComputeSystem(c.ID, pid, hcsshim.TimeoutInfinite); err != nil {
 		if errno == hcsshim.Win32PipeHasBeenEnded {
 			logrus.Debugf("Exiting Run() after WaitForProcessInComputeSystem failed with recognised error 0x%X", errno)
+			time.Sleep(60 * time.Second)
 			return hcsshim.WaitErrExecFailed, nil
 		}
 		logrus.Warnf("WaitForProcessInComputeSystem failed (container may have been killed): 0x%X %s", errno, err)
+		time.Sleep(60 * time.Second)
 		return -1, err
 	}
 
-	logrus.Debugln("Exiting Run()", c.ID)
+	logrus.Debugln("Exiting Run() - hack for Kris, sleeping for 60 seconds", c.ID)
+	time.Sleep(60 * time.Second)
+	logrus.Debugln("Exiting Run() - hack for Kris, sleeping for 60 seconds completed", c.ID)
 	return int(exitCode), nil
 }
