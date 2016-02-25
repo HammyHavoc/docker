@@ -118,6 +118,7 @@ This section lists each version from latest to oldest.  Each listing includes a 
 
 * `POST /containers/create` now takes `StorageOpt` field.
 * `GET /info` now returns `SecurityOptions` field, showing if `apparmor`, `seccomp`, or `selinux` is supported.
+* `POST /containers/create` now takes `MaximumIOps` and `MaximumIOBps` fields on a Windows daemon.
 
 ### v1.23 API changes
 
