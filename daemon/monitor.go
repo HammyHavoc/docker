@@ -1,13 +1,14 @@
 package daemon
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"runtime"
 	"strconv"
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/docker/docker/container"
 	"github.com/docker/docker/libcontainerd"
 	"github.com/docker/docker/runconfig"
 )
@@ -21,14 +22,15 @@ func (daemon *Daemon) StateChanged(id string, e libcontainerd.StateInfo) error {
 
 	switch e.State {
 	case libcontainerd.StateOOM:
+		// StateOOM is Linux specific and should never be hit on Windows
+		if runtime.GOOS == "windows" {
+			return errors.New("Received StateOOM from libcontainerd on Windows. This should never happen.")
+		}
 		daemon.LogContainerEvent(c, "oom")
 	case libcontainerd.StateExit:
 		c.Reset(true)
 		daemon.Cleanup(c)
-		c.SetStopped(&container.ExitStatus{
-			ExitCode:  int(e.ExitCode),
-			OOMKilled: e.OOMKilled,
-		})
+		c.SetStopped(platformConstructExitStatus(e))
 		attributes := map[string]string{
 			"exitCode": strconv.Itoa(int(e.ExitCode)),
 		}
@@ -41,10 +43,7 @@ func (daemon *Daemon) StateChanged(id string, e libcontainerd.StateInfo) error {
 	case libcontainerd.StateRestart:
 		c.Reset(true)
 		c.RestartCount++
-		c.SetRestarting(&container.ExitStatus{
-			ExitCode:  int(e.ExitCode),
-			OOMKilled: e.OOMKilled,
-		})
+		c.SetRestarting(platformConstructExitStatus(e))
 		attributes := map[string]string{
 			"exitCode": strconv.Itoa(int(e.ExitCode)),
 		}
