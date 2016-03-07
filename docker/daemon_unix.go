@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/Sirupsen/logrus"
@@ -83,5 +84,5 @@ func (cli *DaemonCli) initLibcontainerd() libcontainerd.Remote {
 }
 
 func cleanupRemote(cdr libcontainerd.Remote) {
-	containerdRemote.Cleanup()
+	cdr.Cleanup()
 }
