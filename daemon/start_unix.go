@@ -17,4 +17,5 @@ func (daemon *Daemon) platformStart(container *container.Container) error {
 		container.Reset(false)
 		return err
 	}
+	return nil
 }

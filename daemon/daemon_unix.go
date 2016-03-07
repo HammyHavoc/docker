@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/container"
@@ -26,6 +27,7 @@ import (
 	"github.com/docker/docker/reference"
 	"github.com/docker/docker/runconfig"
 	runconfigopts "github.com/docker/docker/runconfig/opts"
+	"github.com/docker/engine-api/types"
 	pblkiodev "github.com/docker/engine-api/types/blkiodev"
 	containertypes "github.com/docker/engine-api/types/container"
 	"github.com/docker/libnetwork"
@@ -34,7 +36,7 @@ import (
 	"github.com/docker/libnetwork/ipamutils"
 	"github.com/docker/libnetwork/netlabel"
 	"github.com/docker/libnetwork/options"
-	"github.com/docker/libnetwork/types"
+	lntypes "github.com/docker/libnetwork/types"
 	"github.com/opencontainers/runc/libcontainer/label"
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/opencontainers/specs"
@@ -697,8 +699,8 @@ func initBridgeDriver(controller libnetwork.NetworkController, config *Config) e
 
 	nw, nw6List, err := ipamutils.ElectInterfaceAddresses(bridgeName)
 	if err == nil {
-		ipamV4Conf.PreferredPool = types.GetIPNetCanonical(nw).String()
-		hip, _ := types.GetHostPartIP(nw.IP, nw.Mask)
+		ipamV4Conf.PreferredPool = lntypes.GetIPNetCanonical(nw).String()
+		hip, _ := lntypes.GetHostPartIP(nw.IP, nw.Mask)
 		if hip.IsGlobalUnicast() {
 			ipamV4Conf.Gateway = nw.IP.String()
 		}
@@ -1109,7 +1111,7 @@ func (daemon *Daemon) stats(c *container.Container) (*types.StatsJSON, error) {
 func (daemon *Daemon) containerdRestore(c *container.Container) error {
 	e := daemon.containerd.Restore(c.ID, libcontainerd.WithRestartManager(c.RestartManager(true)))
 	if e != nil {
-		logrus.Errorf("Failed to restore with containerd: %q", err)
+		logrus.Errorf("Failed to restore with containerd: %q", e)
 	}
 	return e
 }
