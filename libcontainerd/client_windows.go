@@ -2,6 +2,7 @@ package libcontainerd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -295,47 +296,47 @@ func (c *client) Create(id string, spec Spec, options ...CreateOption) error {
 
 // TODO Implement
 func (c *client) AddProcess(id, processID string, specp Process) error {
-	return nil
+	return errors.New("Not yet implemented on Windows")
 }
 
 // TODO Implment
 func (c *client) Signal(id string, sig int) error {
-	return nil
+	return errors.New("Not yet implemented on Windows")
 }
 
 // TODO Implement
 func (c *client) Resize(id, processID string, width, height int) error {
-	return nil
+	return errors.New("Not yet implemented on Windows")
 }
 
 // TODO Implement (error on Windows)
 func (c *client) Pause(id string) error {
-	return nil
+	return errors.New("Not yet implemented on Windows")
 }
 
 // TODO Implement
 func (c *client) Resume(id string) error {
-	return nil
+	return errors.New("Not yet implemented on Windows")
 }
 
 // TODO Implement (error on Windows for now)
 func (c *client) Stats(id string) (*Stats, error) {
-	return nil, nil
+	return nil, errors.New("Not yet implemented on Windows")
 }
 
 // TODO Implement
 func (c *client) Restore(id string, options ...CreateOption) error {
-	return nil
+	return errors.New("Not yet implemented on Windows")
 }
 
 // TODO Implement
 func (c *client) GetPidsForContainer(id string) ([]int, error) {
-	return nil, nil
+	return nil, errors.New("Not yet implemented on Windows")
 }
 
 // TODO Implement
 func (c *client) UpdateResources(id string, resources Resources) error {
-	return nil
+	return errors.New("Not yet implemented on Windows")
 }
 
 func (c *client) newContainer(id string, p windowsoci.Process, options ...CreateOption) *container {
