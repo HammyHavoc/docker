@@ -8,14 +8,12 @@ import (
 
 	"github.com/Microsoft/hcsshim"
 	"github.com/Sirupsen/logrus"
-	"github.com/docker/docker/restartmanager"
 )
 
 type container struct {
-	process
-	restartManager restartmanager.RestartManager
-	restarting     bool
-	processes      map[string]*process
+	containerCommon
+
+	// Platform specific fields are below here. There are none presently on Windows.
 }
 
 func (c *container) start() error {

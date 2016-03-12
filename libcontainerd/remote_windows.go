@@ -29,10 +29,12 @@ func (r *remote) Cleanup() {
 // BUGBUG If neither Windows/Linux return nil, no need for error...
 func (r *remote) Client(b Backend) (Client, error) {
 	c := &client{
-		backend:          b,
-		remote:           r,
-		containers:       make(map[string]*container),
-		containerMutexes: make(map[string]*sync.Mutex),
+		clientCommon: clientCommon{
+			backend: b,
+			//		remote:           r,
+			containers:       make(map[string]*container),
+			containerMutexes: make(map[string]*sync.Mutex),
+		},
 	}
 
 	r.Lock()
