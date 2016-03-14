@@ -52,13 +52,18 @@ func (ctr *container) start() error {
 	// Start the command running in the container.
 	pid, iopipe.Stdin, stdout, stderr, err = hcsshim.CreateProcessInComputeSystem(
 		ctr.containerID,
-		true,
+		true, // ctr.process.ociProcess.HackStdin,
 		true,
 		!ctr.process.ociProcess.Terminal,
 		createProcessParms)
 	if err != nil {
 		logrus.Errorf("CreateProcessInComputeSystem() failed %s", err)
 		return err
+	}
+
+	// HACK HACK
+	if !ctr.process.ociProcess.HackStdin {
+		iopipe.Stdin.Close()
 	}
 
 	// Convert io.ReadClosers to io.Readers

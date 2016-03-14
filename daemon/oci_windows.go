@@ -51,6 +51,7 @@ func (daemon *Daemon) createSpec(c *container.Container) (*libcontainerd.Spec, e
 	s.Process.Env = c.CreateDaemonEnvironment(linkedEnv)
 	s.Process.InitialConsoleSize = c.HostConfig.ConsoleSize
 	s.Process.Terminal = c.Config.Tty
+	s.Process.HackStdin = c.Config.OpenStdin
 	s.Process.User.User = c.Config.User
 
 	// In spec.Root
