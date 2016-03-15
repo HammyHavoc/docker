@@ -24,7 +24,7 @@ func (daemon *Daemon) cleanupMountsByID(id string) error {
 }
 
 func (daemon *Daemon) cleanupMountsFromReaderByID(reader io.Reader, id string, unmount func(target string) error) error {
-	if daemon.repository == "" {
+	if daemon.root == "" {
 		return nil
 	}
 	var errors []string
@@ -83,7 +83,7 @@ func (daemon *Daemon) cleanupMounts() error {
 }
 
 func (daemon *Daemon) cleanupMountsFromReader(reader io.Reader, unmount func(target string) error) error {
-	if daemon.repository == "" {
+	if daemon.root == "" {
 		return nil
 	}
 	sc := bufio.NewScanner(reader)
