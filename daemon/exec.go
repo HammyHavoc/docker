@@ -188,7 +188,7 @@ func (d *Daemon) ContainerExecStart(name string, stdin io.ReadCloser, stdout io.
 	}
 
 	p := libcontainerd.Process{
-		Args:     append([]string{ec.Entrypoint}, ec.Args...),
+		Args:     libcontainerd.ArgsFromSlice(append([]string{ec.Entrypoint}, ec.Args...), false),
 		Terminal: ec.Tty,
 	}
 

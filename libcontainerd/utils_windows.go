@@ -2,6 +2,7 @@ package libcontainerd
 
 import (
 	"strings"
+	"syscall"
 )
 
 // setupEnvironmentVariables convert a string array of environment variables
@@ -15,4 +16,21 @@ func setupEnvironmentVariables(a []string) map[string]string {
 		}
 	}
 	return r
+}
+
+// ArgsFromSlice returns the value to place in the Process.Args field,
+// given a slice of arguments (starting with the executable) and whether
+// the arguments have already been escaped.
+func ArgsFromSlice(args []string, escaped bool) string {
+	if escaped {
+		return strings.Join(args, " ")
+	}
+	s := ""
+	for i, a := range args {
+		if i != 0 {
+			s += " "
+		}
+		s += syscall.EscapeArg(a)
+	}
+	return s
 }

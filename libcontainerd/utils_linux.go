@@ -39,3 +39,11 @@ func systemPid(ctr *containerd.Container) uint32 {
 	}
 	return pid
 }
+
+// ArgsFromSlice returns the value to place in the Process.Args field,
+// given a slice of arguments (starting with the executable) and whether
+// the arguments have already been escaped. On Linux, the arguments are
+// assumed to never have been escaped.
+func ArgsFromSlice(args []string, _ bool) []string {
+	return args
+}
