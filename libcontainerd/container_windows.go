@@ -71,6 +71,12 @@ func (ctr *container) start() error {
 		return err
 	}
 
+	// BUGBUG @jhowardmsft
+	// If the CreateProcesInComputeSystem fails, do we need to send an event
+	// to the engine? We should probably also TerminateComputeSystem. Similar
+	// bug below if the AttachStream fails, but probably OK as we've already
+	// started the go routine which will do the tear-down.
+
 	// Convert io.ReadClosers to io.Readers
 	if stdout != nil {
 		iopipe.Stdout = openReaderFromPipe(stdout)
@@ -113,7 +119,9 @@ func (ctr *container) waitExit(pid uint32, processFriendlyName string, isFirstPr
 		if herr, ok := err.(*hcsshim.HcsError); ok && herr.Err != syscall.ERROR_BROKEN_PIPE {
 			logrus.Warnf("WaitForProcessInComputeSystem failed (container may have been killed): %s", err)
 		}
-		return nil
+		// Fall through here, do not return. This ensures we attempt to continue the
+		// shutdown in HCS nad tell the docker engine that the process/container
+		// has exited to avoid a container being dropped on the floor.
 	}
 
 	// Assume the container has exited
@@ -133,7 +141,10 @@ func (ctr *container) waitExit(pid uint32, processFriendlyName string, isFirstPr
 	// shutdown the container after we have completed.
 	if isFirstProcessToStart {
 		logrus.Debugf("Shutting down container %s", ctr.containerID)
-		if err := hcsshim.ShutdownComputeSystem(ctr.containerID, hcsshim.TimeoutInfinite, "waitExit"); err != nil {
+		// Explicit timeout here rather than hcsshim.TimeoutInfinte to avoid a
+		// (remote) possibility that ShutdownComputeSystem hangs indefinitely.
+		const shutdownTimeout = 5 * 60 * 1000 // 5 minutes
+		if err := hcsshim.ShutdownComputeSystem(ctr.containerID, shutdownTimeout, "waitExit"); err != nil {
 			if herr, ok := err.(*hcsshim.HcsError); !ok ||
 				(herr.Err != hcsshim.ERROR_SHUTDOWN_IN_PROGRESS &&
 					herr.Err != ErrorBadPathname &&
