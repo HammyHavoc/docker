@@ -108,7 +108,7 @@ const defaultOwner = "docker"
 
 // Create is the entrypoint to create a container from a spec, and if successfully
 // created, start it too.
-func (clnt *client) Create(containerID string, spec Spec, unusedOnWindows ...CreateOption) error {
+func (clnt *client) Create(containerID string, spec Spec, options ...CreateOption) error {
 	logrus.Debugln("LCD client.Create() with spec", spec)
 
 	cu := &containerInit{
@@ -299,10 +299,17 @@ func (clnt *client) Create(containerID string, spec Spec, unusedOnWindows ...Cre
 					client:       clnt,
 					friendlyName: InitFriendlyName,
 				},
-				ociProcess: spec.Process,
 			},
 			processes: make(map[string]*process),
 		},
+		ociSpec: spec,
+	}
+
+	container.options = options
+	for _, option := range options {
+		if err := option.Apply(container); err != nil {
+			logrus.Error(err)
+		}
 	}
 
 	// Call start, and if it fails, delete the container from our
@@ -343,7 +350,7 @@ func (clnt *client) AddProcess(containerID, processFriendlyName string, procToAd
 	if procToAdd.Cwd != "" {
 		createProcessParms.WorkingDirectory = procToAdd.Cwd
 	} else {
-		createProcessParms.WorkingDirectory = container.containerCommon.ociProcess.Cwd
+		createProcessParms.WorkingDirectory = container.ociSpec.Process.Cwd
 	}
 
 	// Configure the environment for the process

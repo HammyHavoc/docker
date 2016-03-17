@@ -13,6 +13,12 @@ type container struct {
 	containerCommon
 
 	// Platform specific fields are below here. There are none presently on Windows.
+	options []CreateOption
+
+	// The ociSpec is required, as client.Create() needs a spec,
+	// but can be called from the RestartManager context which does not
+	// otherwise have access to the Spec
+	ociSpec Spec
 }
 
 func (ctr *container) newProcess(friendlyName string) *process {
@@ -36,16 +42,16 @@ func (ctr *container) start() error {
 	}
 
 	createProcessParms := hcsshim.CreateProcessParams{
-		EmulateConsole:   ctr.process.ociProcess.Terminal,
-		WorkingDirectory: ctr.process.ociProcess.Cwd,
-		ConsoleSize:      ctr.process.ociProcess.InitialConsoleSize,
+		EmulateConsole:   ctr.ociSpec.Process.Terminal,
+		WorkingDirectory: ctr.ociSpec.Process.Cwd,
+		ConsoleSize:      ctr.ociSpec.Process.InitialConsoleSize,
 	}
 
 	// Configure the environment for the process
-	createProcessParms.Environment = setupEnvironmentVariables(ctr.process.ociProcess.Env)
-	createProcessParms.CommandLine = strings.Join(ctr.process.ociProcess.Args, " ")
+	createProcessParms.Environment = setupEnvironmentVariables(ctr.ociSpec.Process.Env)
+	createProcessParms.CommandLine = strings.Join(ctr.ociSpec.Process.Args, " ")
 
-	iopipe := &IOPipe{Terminal: ctr.process.ociProcess.Terminal}
+	iopipe := &IOPipe{Terminal: ctr.ociSpec.Process.Terminal}
 
 	// Start the command running in the container. Note we always tell HCS to
 	// create stdout as it's required regardless of '-i' or '-t' options, so that
@@ -58,7 +64,7 @@ func (ctr *container) start() error {
 		ctr.containerID,
 		true,
 		true,
-		!ctr.process.ociProcess.Terminal,
+		!ctr.ociSpec.Process.Terminal,
 		createProcessParms)
 	if err != nil {
 		logrus.Errorf("CreateProcessInComputeSystem() failed %s", err)
@@ -154,9 +160,13 @@ func (ctr *container) waitExit(pid uint32, processFriendlyName string, isFirstPr
 					err := <-wait
 					ctr.restarting = false
 					if err != nil {
+						si.State = StateExit
+						if err := ctr.client.backend.StateChanged(ctr.containerID, si); err != nil {
+							logrus.Error(err)
+						}
 						logrus.Error(err)
 					} else {
-						ctr.start()
+						ctr.client.Create(ctr.containerID, ctr.ociSpec, ctr.options...)
 					}
 				}()
 			}
@@ -164,7 +174,9 @@ func (ctr *container) waitExit(pid uint32, processFriendlyName string, isFirstPr
 
 		// Remove process from list if we have exited
 		// We need to do so here in case the Message Handler decides to restart it.
-		ctr.client.deleteContainer(ctr.friendlyName)
+		if si.State == StateExit {
+			ctr.client.deleteContainer(ctr.friendlyName)
+		}
 	}
 
 	// Call into the backend to notify it of the state change.
