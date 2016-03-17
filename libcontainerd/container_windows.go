@@ -182,7 +182,7 @@ func (ctr *container) waitExit(pid uint32, processFriendlyName string, isFirstPr
 	// Call into the backend to notify it of the state change.
 	logrus.Debugf("waitExit() calling backend.StateChanged %v", si)
 	if err := ctr.client.backend.StateChanged(ctr.containerID, si); err != nil {
-		logrus.Error(err)
+		logrus.Errorf("waitExit got error from StateChange call", err)
 	}
 
 	logrus.Debugln("waitExit() completed OK")

@@ -395,6 +395,7 @@ func (clnt *client) AddProcess(containerID, processFriendlyName string, procToAd
 
 	// Tell the engine to attach streams back to the client
 	if err := clnt.backend.AttachStreams(processFriendlyName, *iopipe); err != nil {
+		logrus.Errorf("LCD: AddProcess error from AttachStreams:", err)
 		return err
 	}
 

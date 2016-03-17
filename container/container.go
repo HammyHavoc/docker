@@ -360,36 +360,47 @@ func AttachStreams(ctx context.Context, streamConfig *runconfig.StreamConfig, op
 		errors           = make(chan error, 3)
 	)
 
+	logrus.Debugln("Entered Container AttachStreams()")
+
 	if stdin != nil && openStdin {
+		logrus.Debugln("Container AttachStreams - stdin waitgroup add")
 		cStdin = streamConfig.StdinPipe()
 		wg.Add(1)
 	}
 
 	if stdout != nil {
+		logrus.Debugln("Container AttachStreams - stdout waitgroup add")
 		cStdout = streamConfig.StdoutPipe()
 		wg.Add(1)
 	}
 
 	if stderr != nil {
+		logrus.Debugln("Container AttachStreams - stderr waitgroup add")
 		cStderr = streamConfig.StderrPipe()
 		wg.Add(1)
 	}
 
 	// Connect stdin of container to the http conn.
 	go func() {
+		logrus.Debugln("Container AttachStreams Top GoRoutine")
 		if stdin == nil || !openStdin {
+			logrus.Debugln("Container AttachStreams Top GoRoutine returning at top")
 			return
 		}
 		logrus.Debugf("attach: stdin: begin")
 
 		var err error
 		if tty {
+			logrus.Debugln("Container AttachStreams Top GoRoutine calling copyEscapable")
 			_, err = copyEscapable(cStdin, stdin, keys)
 		} else {
+			logrus.Debugln("Container AttachStreams Top GoRoutine calling io.Copy")
 			_, err = io.Copy(cStdin, stdin)
 
 		}
+		logrus.Debugln("Container AttachStreams Top GoRoutine After copy")
 		if err == io.ErrClosedPipe {
+			logrus.Debugln("Container AttachStreams Top GoRoutine Got io.ErrClosedPioe, ignoring")
 			err = nil
 		}
 		if err != nil {
@@ -397,28 +408,36 @@ func AttachStreams(ctx context.Context, streamConfig *runconfig.StreamConfig, op
 			errors <- err
 		}
 		if stdinOnce && !tty {
+			logrus.Debugln("Container AttachStreams Top GoRoutine calling cStdin.Close")
 			cStdin.Close()
 		} else {
 			// No matter what, when stdin is closed (io.Copy unblock), close stdout and stderr
 			if cStdout != nil {
+				logrus.Debugln("Container AttachStreams Top GoRoutine calling cStdout.Close()")
 				cStdout.Close()
 			}
 			if cStderr != nil {
+				logrus.Debugln("Container AttachStreams Top GoRoutine calling cStderr.close")
 				cStderr.Close()
 			}
 		}
 		logrus.Debugf("attach: stdin: end")
 		wg.Done()
+		logrus.Debugln("Container AttachStreams Top GoRoutine after wg.Done")
 	}()
 
 	attachStream := func(name string, stream io.Writer, streamPipe io.ReadCloser) {
+		logrus.Debugln("Container AttachStreams attachStream func", name)
 		if stream == nil {
+			logrus.Debugln("Container AttachStreams attachStream func returning as stream==nil", name)
 			return
 		}
 
 		logrus.Debugf("attach: %s: begin", name)
 		_, err := io.Copy(stream, streamPipe)
+		logrus.Debugln("Container AttachStreams attachStream func io.Copy completed", name)
 		if err == io.ErrClosedPipe {
+			logrus.Debugln("Container AttachStreams attachStream func io.ErrClosedPipe, ignoring that error", name)
 			err = nil
 		}
 		if err != nil {
@@ -427,43 +446,61 @@ func AttachStreams(ctx context.Context, streamConfig *runconfig.StreamConfig, op
 		}
 		// Make sure stdin gets closed
 		if stdin != nil {
+			logrus.Debugln("Container AttachStreams attachStream func calling stdin.Close", name)
 			stdin.Close()
 		}
+		logrus.Debugln("Container AttachStreams attachStream func caling streamPipe.Close", name)
 		streamPipe.Close()
 		logrus.Debugf("attach: %s: end", name)
 		wg.Done()
+		logrus.Debugln("Container AttachStreams attachStream func end", name)
 	}
 
+	logrus.Debugln("Calling attachStream for stdout")
 	go attachStream("stdout", stdout, cStdout)
+	logrus.Debugln("Calling attachStream for stderr")
 	go attachStream("stderr", stderr, cStderr)
 
 	return promise.Go(func() error {
 		done := make(chan struct{})
 		go func() {
+			logrus.Debugln("Container AttachStreams - promise func goroutine calling wg.Wait")
 			wg.Wait()
+			logrus.Debugln("Container AttachStreams - promise func goroutine wg.Wait completed")
 			close(done)
+			logrus.Debugln("Container AttachStreams - promise func goroutine close(done) complete")
 		}()
 		select {
 		case <-done:
 		case <-ctx.Done():
 			// close all pipes
 			if cStdin != nil {
+				logrus.Debugln("Container AttachStreams - promise calling cStdin.Close")
 				cStdin.Close()
+				logrus.Debugln("Container AttachStreams - promise cStdin.Close completed")
 			}
 			if cStdout != nil {
+				logrus.Debugln("Container AttachStreams - promise calling cStdout.Close")
 				cStdout.Close()
+				logrus.Debugln("Container AttachStreams - promise cStdout.Close completed")
 			}
 			if cStderr != nil {
+				logrus.Debugln("Container AttachStreams - promise calling cStderr.Close")
 				cStderr.Close()
+				logrus.Debugln("Container AttachStreams - promise cStderr.Close completed")
 			}
 			<-done
 		}
+		logrus.Debugln("Container AttachStreams - promise calling close(errors)")
 		close(errors)
 		for err := range errors {
+			logrus.Debugln("Container AttachStreams - promise top of errors loop")
 			if err != nil {
+				logrus.Debugln("Container AttachStreams - promise found an error, returning it", err)
 				return err
 			}
 		}
+		logrus.Debugln("Container AttachStreams - promise returning nil")
 		return nil
 	})
 }
