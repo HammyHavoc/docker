@@ -40,7 +40,6 @@ func (p *process) openFifos(terminal bool) (*IOPipe, error) {
 	}
 
 	io := &IOPipe{}
-	// FIXME: O_RDWR? open one-sided in goroutines?
 	stdinf, err := os.OpenFile(p.fifo(syscall.Stdin), syscall.O_RDWR, 0)
 	if err != nil {
 		return nil, err
