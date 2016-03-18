@@ -168,7 +168,8 @@ func (r *remote) Client(b Backend) (Client, error) {
 			containerMutexes: make(map[string]*sync.Mutex),
 			containers:       make(map[string]*container),
 		},
-		remote: r,
+		remote:        r,
+		exitNotifiers: make(map[string]*exitNotifier),
 	}
 
 	r.Lock()

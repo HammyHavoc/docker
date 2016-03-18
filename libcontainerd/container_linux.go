@@ -152,6 +152,11 @@ func (ctr *container) handleEvent(e *containerd.Event) error {
 			if e.Type == StatePause || e.Type == StateResume {
 				ctr.pauseMonitor.handle(e.Type)
 			}
+			if e.Type == StateExit {
+				if en := ctr.client.getExitNotifier(e.Id); en != nil {
+					en.close()
+				}
+			}
 		})
 
 	default:

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/Sirupsen/logrus"
@@ -20,8 +21,9 @@ type client struct {
 	clientCommon
 
 	// Platform specific properties below here.
-	remote *remote
-	q      queue
+	remote        *remote
+	q             queue
+	exitNotifiers map[string]*exitNotifier
 }
 
 func (clnt *client) AddProcess(containerID, processFriendlyName string, specp Process) error {
@@ -185,77 +187,12 @@ func (clnt *client) Create(containerID string, spec Spec, options ...CreateOptio
 func (clnt *client) Signal(containerID string, sig int) error {
 	clnt.lock(containerID)
 	defer clnt.unlock(containerID)
-	if _, err := clnt.getContainer(containerID); err != nil {
-		return err
-	}
 	_, err := clnt.remote.apiClient.Signal(context.Background(), &containerd.SignalRequest{
 		Id:     containerID,
 		Pid:    InitFriendlyName,
 		Signal: uint32(sig),
 	})
 	return err
-}
-
-func (clnt *client) restore(cont *containerd.Container, options ...CreateOption) (err error) {
-	clnt.lock(cont.Id)
-	defer clnt.unlock(cont.Id)
-
-	logrus.Debugf("restore container %s state %s", cont.Id, cont.Status)
-
-	containerID := cont.Id
-	if _, err := clnt.getContainer(containerID); err == nil {
-		return fmt.Errorf("container %s is aleady active", containerID)
-	}
-
-	defer func() {
-		if err != nil {
-			clnt.deleteContainer(cont.Id)
-		}
-	}()
-
-	container := clnt.newContainer(cont.BundlePath, options...)
-	container.systemPid = systemPid(cont)
-
-	var terminal bool
-	for _, p := range cont.Processes {
-		if p.Pid == InitFriendlyName {
-			terminal = p.Terminal
-		}
-	}
-
-	iopipe, err := container.openFifos(terminal)
-	if err != nil {
-		return err
-	}
-
-	if err := clnt.backend.AttachStreams(containerID, *iopipe); err != nil {
-		return err
-	}
-
-	clnt.appendContainer(container)
-
-	err = clnt.backend.StateChanged(containerID, StateInfo{
-		State: StateRestore,
-		Pid:   container.systemPid,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	if event, ok := clnt.remote.pastEvents[containerID]; ok {
-		// This should only be a pause or resume event
-		if event.Type == StatePause || event.Type == StateResume {
-			return clnt.backend.StateChanged(containerID, StateInfo{
-				State: event.Type,
-				Pid:   container.systemPid,
-			})
-		}
-
-		logrus.Warnf("unexpected backlog event: %#v", event)
-	}
-
-	return nil
 }
 
 func (clnt *client) Resize(containerID, processFriendlyName string, width, height int) error {
@@ -320,14 +257,7 @@ func (clnt *client) Stats(containerID string) (*Stats, error) {
 	return (*Stats)(resp), nil
 }
 
-func (clnt *client) Restore(containerID string, options ...CreateOption) error {
-	cont, err := clnt.getContainerdContainer(containerID)
-	if err == nil && cont.Status != "stopped" {
-		if err := clnt.restore(cont, options...); err != nil {
-			logrus.Errorf("error restoring %s: %v", containerID, err)
-		}
-		return nil
-	}
+func (clnt *client) setExited(containerID string) error {
 	clnt.lock(containerID)
 	defer clnt.unlock(containerID)
 
@@ -337,7 +267,7 @@ func (clnt *client) Restore(containerID string, options ...CreateOption) error {
 		delete(clnt.remote.pastEvents, containerID)
 	}
 
-	err = clnt.backend.StateChanged(containerID, StateInfo{
+	err := clnt.backend.StateChanged(containerID, StateInfo{
 		State:    StateExit,
 		ExitCode: exitCode,
 	})
@@ -423,4 +353,42 @@ func (clnt *client) UpdateResources(containerID string, resources Resources) err
 		return err
 	}
 	return nil
+}
+
+func (clnt *client) getExitNotifier(containerID string) *exitNotifier {
+	clnt.mapMutex.RLock()
+	defer clnt.mapMutex.RUnlock()
+	return clnt.exitNotifiers[containerID]
+}
+
+func (clnt *client) getOrCreateExitNotifier(containerID string) *exitNotifier {
+	clnt.mapMutex.Lock()
+	w, ok := clnt.exitNotifiers[containerID]
+	defer clnt.mapMutex.Unlock()
+	if !ok {
+		w = &exitNotifier{c: make(chan struct{}), client: clnt}
+		clnt.exitNotifiers[containerID] = w
+	}
+	return w
+}
+
+type exitNotifier struct {
+	id     string
+	client *client
+	c      chan struct{}
+	once   sync.Once
+}
+
+func (en *exitNotifier) close() {
+	en.once.Do(func() {
+		close(en.c)
+		en.client.mapMutex.Lock()
+		if en == en.client.exitNotifiers[en.id] {
+			delete(en.client.exitNotifiers, en.id)
+		}
+		en.client.mapMutex.Unlock()
+	})
+}
+func (en *exitNotifier) wait() <-chan struct{} {
+	return en.c
 }
