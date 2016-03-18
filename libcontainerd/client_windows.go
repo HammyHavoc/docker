@@ -189,7 +189,9 @@ func (clnt *client) Create(containerID string, spec Spec, options ...CreateOptio
 	cu.MappedDirectories = mds
 
 	// TODO Windows: vv START OF TP4 BLOCK OF CODE. REMOVE ONCE TP4 IS NO LONGER SUPPORTED
-	if hcsshim.IsTP4() && spec.Windows.Networking != nil {
+	if hcsshim.IsTP4() &&
+		spec.Windows.Networking != nil &&
+		spec.Windows.Networking.Bridge != "" {
 		// Enumerate through the port bindings specified by the user and convert
 		// them into the internal structure matching the JSON blob that can be
 		// understood by the HCS.
