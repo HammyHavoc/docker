@@ -1,4 +1,4 @@
-// +build linux,!experimental
+// +build !experimental
 
 package libcontainerd
 
