@@ -1,9 +1,6 @@
 package libcontainerd
 
-import (
-	"strings"
-	"syscall"
-)
+import "strings"
 
 // setupEnvironmentVariables convert a string array of environment variables
 // into a map as required by the HCS. Source array is in format [v1=k1] [v2=k2] etc.
@@ -16,14 +13,4 @@ func setupEnvironmentVariables(a []string) map[string]string {
 		}
 	}
 	return r
-}
-
-// EscapeArgs applies standard escaping on command-line arguments for the
-// OCI process spec.
-func EscapeArgs(args []string) []string {
-	escapedArgs := make([]string, len(args))
-	for i, a := range args {
-		escapedArgs[i] = syscall.EscapeArg(a)
-	}
-	return escapedArgs
 }
