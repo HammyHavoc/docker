@@ -15,7 +15,7 @@ func (clnt *client) Restore(containerID string, options ...CreateOption) error {
 	cont, err := clnt.getContainerdContainer(containerID)
 	if err == nil && cont.Status != "stopped" {
 		clnt.lock(cont.Id)
-		container := clnt.newContainer(cont.BundlePath, options...)
+		container := clnt.newContainer(cont.BundlePath)
 		container.systemPid = systemPid(cont)
 		clnt.appendContainer(container)
 		clnt.unlock(cont.Id)
