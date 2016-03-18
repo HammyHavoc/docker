@@ -318,10 +318,7 @@ func (clnt *client) Create(containerID string, spec Spec, options ...CreateOptio
 	logrus.Debugf("Create() id=%s, Calling start()", containerID)
 	if err := container.start(); err != nil {
 		clnt.deleteContainer(containerID)
-		if err := hcsshim.TerminateComputeSystem(containerID, hcsshim.TimeoutInfinite, "Start failed"); err != nil {
-			// Ignore this error, there's not a lot we can do except log it
-			logrus.Warnf("Failed to TerminateComputeSystem after a failed start. HCS may now have a leaked created ComputeSystem", err)
-		}
+		return err
 	}
 
 	logrus.Debugf("Create() id=%s completed successfully", containerID)
