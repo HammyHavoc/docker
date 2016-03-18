@@ -68,14 +68,16 @@ func (ctr *container) start() error {
 		createProcessParms)
 	if err != nil {
 		logrus.Errorf("CreateProcessInComputeSystem() failed %s", err)
+
+		// Explicitly terminate the compute system here.
+		if err2 := hcsshim.TerminateComputeSystem(ctr.containerID, hcsshim.TimeoutInfinite, "CreateProcessInComputeSystem failed"); err2 != nil {
+			// Ignore this error, there's not a lot we can do except log it
+			logrus.Warnf("Failed to TerminateComputeSystem after a failed CreateProcessInComputeSystem. Ignoring this.", err2)
+		} else {
+			logrus.Debugln("Cleaned up after failed CreateProcessInComputeSystem by calling TerminateComputeSystem")
+		}
 		return err
 	}
-
-	// BUGBUG @jhowardmsft
-	// If the CreateProcesInComputeSystem fails, do we need to send an event
-	// to the engine? We should probably also TerminateComputeSystem. Similar
-	// bug below if the AttachStream fails, but probably OK as we've already
-	// started the go routine which will do the tear-down.
 
 	// Convert io.ReadClosers to io.Readers
 	if stdout != nil {
@@ -95,6 +97,7 @@ func (ctr *container) start() error {
 	ctr.client.appendContainer(ctr)
 
 	if err := ctr.client.backend.AttachStreams(ctr.containerID, *iopipe); err != nil {
+		// OK to return the error here, as waitExit will handle tear-down in HCS
 		return err
 	}
 
