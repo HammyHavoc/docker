@@ -3,6 +3,7 @@ package daemon
 import (
 	"fmt"
 	"strings"
+	"syscall"
 
 	"github.com/docker/docker/container"
 	"github.com/docker/docker/layer"
@@ -62,9 +63,11 @@ func (daemon *Daemon) createSpec(c *container.Container) (*libcontainerd.Spec, e
 	}
 
 	// In s.Process
-	s.Process.Args = append([]string{c.Path}, c.Args...)
-	if !c.Config.ArgsEscaped {
-		s.Process.Args = libcontainerd.EscapeArgs(s.Process.Args)
+	if c.Config.ArgsEscaped {
+		s.Process.Args = append([]string{c.Path}, c.Args...)
+	} else {
+		// TODO (jstarks): escape the entrypoint too once the tests are fixed to not rely on this behavior
+		s.Process.Args = append([]string{c.Path}, escapeArgs(c.Args)...)
 	}
 	s.Process.Cwd = c.Config.WorkingDir
 	s.Process.Env = c.CreateDaemonEnvironment(linkedEnv)
@@ -190,4 +193,12 @@ func (daemon *Daemon) createSpec(c *container.Container) (*libcontainerd.Spec, e
 	//	}
 
 	return (*libcontainerd.Spec)(&s), nil
+}
+
+func escapeArgs(args []string) []string {
+	escapedArgs := make([]string, len(args))
+	for i, a := range args {
+		escapedArgs[i] = syscall.EscapeArg(a)
+	}
+	return escapedArgs
 }
