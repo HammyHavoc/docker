@@ -54,7 +54,7 @@ func TestCleanupMounts(t *testing.T) {
 	var unmounted int
 	unmount := func(target string) error {
 		if target == expected {
-			unmounted += 1
+			unmounted++
 		}
 		return nil
 	}
@@ -75,7 +75,7 @@ func TestCleanupMountsByID(t *testing.T) {
 	var unmounted int
 	unmount := func(target string) error {
 		if target == expected {
-			unmounted += 1
+			unmounted++
 		}
 		return nil
 	}
