@@ -3,7 +3,12 @@ set -e
 
 # subshell so that we can export PATH without breaking other things
 (
-	bundle .integration-daemon-start
+	# Both Windows to Linux and Windows to Windows CIs both start the daemon
+	# through their CI script. Hence .integration-daemon-start, and 
+	# .integration-daemon-stop are no-ops on these CIs.
+	if [ ! "$(go env GOOS)" = 'windows' ]; then
+		bundle .integration-daemon-start
+	fi
 
 	dockerPy='/docker-py'
 	[ -d "$dockerPy" ] || {
@@ -14,5 +19,7 @@ set -e
 	# exporting PYTHONPATH to import "docker" from our local docker-py
 	test_env PYTHONPATH="$dockerPy" py.test "$dockerPy/tests/integration"
 
-	bundle .integration-daemon-stop
+	if [ ! "$(go env GOOS)" = 'windows' ]; then
+		bundle .integration-daemon-stop
+	fi
 ) 2>&1 | tee -a "$DEST/test.log"

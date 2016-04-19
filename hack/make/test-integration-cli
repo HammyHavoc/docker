@@ -8,11 +8,18 @@ bundle_test_integration_cli() {
 
 # subshell so that we can export PATH without breaking other things
 (
-	bundle .integration-daemon-start
+	# Both Windows to Linux and Windows to Windows CIs both start the daemon
+	# through their CI script. Hence .integration-daemon-start, and 
+	# .integration-daemon-stop are no-ops on these CIs.
+	if [ ! "$(go env GOOS)" = 'windows' ]; then
+		bundle .integration-daemon-start
+	fi
 
 	bundle .integration-daemon-setup
 
 	bundle_test_integration_cli
 
-	bundle .integration-daemon-stop
+	if [ ! "$(go env GOOS)" = 'windows' ]; then
+		bundle .integration-daemon-stop
+	fi
 ) 2>&1 | tee -a "$DEST/test.log"
